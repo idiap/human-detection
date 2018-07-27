@@ -1,0 +1,175 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <title>Getting started with Idiap's Human Detection code</title>
+        <style type="text/css">
+            idiap-specific {color: darkgray;}
+            .code {border: 1px solid grey; background: lightyellow;}
+            pre.code {padding: 1em; margin: 1em;}
+            span.code {padding: 0 .5em; font-style: truetype;}
+            span.option, span.exec {padding: 0 .25em; font-style: truetype; background: #FEE; border: 1px solid grey;}
+            li span.cat {font-weight: bold;}
+            .WARNING {font-weight: bold; font-size: big; border: 3px solid black; color: red; padding: 1em; background: #DDD;}
+        </style>
+    </head>
+
+    <body>
+        <h1>Introduction and reference</h1>
+        <p>
+            This code is documented in the following research paper:
+        </p>
+
+        <div id="deps-and-comp">
+        <h1>Dependencies and compilation</h1>
+
+        <p>
+            The human detection code requires at least the OpenCV 2.3 library.
+            CMake is also required to build the human detector.
+        </p>
+
+
+        <h2>Installing dependencies</h2>
+        <!--p class="idiap-specific">
+            It is improbable, but if your environment features SETSHELL, you can just use: <span class="code">SETSHELL opencv-2</span> and skip to the next section.
+        </p-->
+        <p>
+            If you have OpenCV and CMake installed, then everything should be ok.
+            In other cases, OpenCV and CMake can be installed in different ways depending on your operating system and you environment.
+            You can refer to the <a href="http://opencv.willowgarage.com/wiki/">OpenCV wiki</a> and the <a href="http://www.cmake.org/">CMake webpage</a> for download and installation instructions.
+        </p>
+        <p>
+            If you have installed OpenCV manually, please make sure the “OpenCV_DIR” environment variable points to the opencv installation directory (contains subdirectories bin, include, ...) so CMake will be able to find it.
+        </p>
+        <p>
+            If your are using Ubuntu and CMake fails to find OpenCV, then you can install better OpenCV packages.
+            Please refer to <a href="http://opencv.willowgarage.com/wiki/Ubuntu_Packages">the dedicated page on the OpenCV wiki</a> for details.
+        </p>
+
+        <h2>Compiling the background subtraction and the human detector</h2>
+        <p>
+            Once OpenCV is properly installed, everything can be compiled using CMake:
+        </p>
+        <!--div class="WARNING">
+          Under linux, we have seen some unexpected behavior with some programs compiled without "-O3" but linked against an OpenCV version compiled with "-O3".
+          These problems can affect the background subtraction also, so it is better to check this point (and add or remove the <span class="option">-DCMAKE_BUILD_TYPE=Release</span> accordingly).
+          (see image below for symptoms)
+        </div>
+        <div class="WARNING">
+          Under MacOS, we have also seen the same unexpected behavior in some configurations.
+          Please tell us if you encounter the problem (send us an email) to help us fix it.
+          (see image below for symptoms)
+        </div-->
+        <div class="WARNING">
+          A previous spurious bug (appearing only with some compilation options) has been fixed.
+          Please tell us if you still encounter this problem (send us an email) to help us fix it.
+          (see image below for symptoms)
+        </div>
+        <img class="WARNING" style="border:1px solid red;" src="media/circles-problem.png" alt="Pb. Ex."/>
+        <br/>
+        <pre class="code">
+mkdir build
+cd build
+cmake ../src -DCMAKE_BUILD_TYPE=Release
+make
+cd ..
+ls build/bin</pre>
+        <p>
+            You should obtain 3 executables: <span class="exec">bgsub_detect</span>, <span class="exec">bgsub_learn</span> and <span class="exec">human_detect</span>.        </p>
+        </div>
+
+        <div id="testing-program">
+        <h1>Running the programs</h1>
+        <h2>Required video data</h2>
+        <p>
+            To test the program, you need a video.
+            This video must be recorded from a static camera and should contain persons (if you want to do person detections).
+            For testing purpose, we provide a video (OneStopNoEnter1cor.mpg) that can also be downloaded from the <a href="http://groups.inf.ed.ac.uk/vision/CAVIAR/CAVIARDATA1/">index of the CAVIAR dataset</a>.
+        </p>
+
+        <h2>Learning background model</h2>
+        <p>
+            The first step is to learn a background model.
+            This model should be learnt using a video sequence containing as few static objects as possible.
+            You can generate a <span class="code">models/bgmodel.yml</span> output model like this:
+            <br/><em class="comment">(you can add the <span class="option">-os</span> option to look at the learning process)</em>
+        </p>
+        <pre class="code">
+build/bin/bgsub_learn data/OneStopNoEnter1cor.mpg models/bgmodel.yml -sfn 4</pre>
+
+        <h2>Doing background subtraction (no human detection)</h2>
+        <p>
+            You will use the generated background model to do background detection.
+            Here, we will work on the same video sequence.
+            The process will generate foreground mask probability images in the <span class="code">results/demo</span> folder.
+            <br/><em class="comment">(you can add the <span class="option">-os</span> option to look at the learning process)</em>
+        </p>
+        <pre class="code">
+mkdir results/demo
+build/bin/bgsub_detect data/OneStopNoEnter1cor.mpg models/bgmodel.yml   \
+                       -nolearn -od results/demo -ofpi</pre>
+
+        <h2>Doing human detection</h2>
+        <p>
+            Here again, we need a background model and an input video.
+            We also need a configuration for the detector, we use <span class="code">models/human.yml</span>.
+            You can run human detection with  interactive visualization like this:
+        </p>
+        <pre class="code">
+build/bin/human_detect models/human.yml data/OneStopNoEnter1cor.mpg     \
+                       -bgm models/bgmodel.yml -ddet -sfn 4</pre>
+        </div>
+
+        <div id="understanding-parameters">
+        <h1>Understanding the parameters</h1>
+        <h2>General parameters</h2>
+        <p>
+            You can get the list of parameters of any executable by just running it with no parameters or with the <span class="option">--help</span> option.
+            Each parameter is accompanied by a description.
+            Some categories of parameters can be found for most of the executable and are good to know, these are:
+        </p>
+        <ul>
+            <li><span class="cat">Image sequence</span>: you can control at which frame to start and end the processing.
+                It is also possible to control how many frame should be additionnaly skipped at each processing step.
+            </li>
+            <li><span class="cat">Preprocessing</span>: you can apply a gaussian filter and/or resing the input images if you wish.
+                Note that the gaussian smooting is applied after the possible image resizing.
+            </li>
+            <li><span class="cat">Display output</span>: you can enable the display of the results on your screen.
+                Depending on the algorithm, different display options are available.
+            </li>
+        </ul>
+        <p>
+            Next sections given more informations about parameters of specific executables.
+            These are not intended to supersede the executable built-in help but rather it should give another point of view on these parameters.
+        </p>
+
+        <h2>Parameters for background subtraction (learning and detection)</h2>
+        <p>
+            The generic background subtraction algorithm can generate, refine or simply use a background model.
+            The <span class="exec">bgsub_learn</span> executable will only learn a model from scratch.
+            The <span class="exec">bgsub_detect</span> executable uses a learnt model to segment foreground/background in images.
+            During detection, the background model is refined by default, you can disable it (and improve speed) with the <span class="option">-nolearn</span> option.
+        </p>
+        <!--p>
+            The learning or refining of the background model is controlled by various parameters:
+        </p>
+        <ul>
+            <li><span class="cat"></span></li>
+            <li><span class="cat"></span></li>
+            <li><span class="cat"></span></li>
+            <li><span class="cat"></span></li>
+        </ul-->
+
+        <h2>Parameters for human detection</h2>
+            <p>
+            You can use the <span class="option">--help</span> option to get the list of all parameters.
+            For further explanation, please refer to the corresponding papers.
+            </p>
+        </div>
+        
+        <!--h1>Understanding the involved files</h1-->
+
+        <hr/>
+        <!-- hhmts start -->Last modified: Mon Feb 18 14:23:56 CET 2013 <!-- hhmts end -->
+    </body>
+</html>

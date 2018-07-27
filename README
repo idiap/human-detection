@@ -1,0 +1,31 @@
+
+cd WHAT
+wget http://groups.inf.ed.ac.uk/vision/CAVIAR/CAVIARDATA2/OneStopNoEnter1cor/OneStopNoEnter1cor.mpg
+
+
+// You need to have opencv 2 and set the OpenCV_DIR environment variable
+SETSHELL opencv-2
+          export OpenCV_DIR=$OPENCVROOT
+
+mkdir build
+cd build
+cmake ../src
+make
+cd ..
+
+
+build/bin/bgsub_learn OneStopNoEnter1cor.mpg model.out -sfn 4
+
+mkdir out
+build/bin/bgsub_detect OneStopNoEnter1cor.mpg model.out -od out -ofpi
+
+
+build/bin/human_detect  human_det_color_fp_234.yml OneStopNoEnter1cor.mpg  -bgm model.out -ddet -sfn 4
+
+
+
+################
+
+
+find -name \*.c -o -name \*.cc -o -name \*.cpp -exec  basename '{}' \; | sed 's@\(.*\)[.]c[cp]*@"\0" -> "\1.h"@g' >adddot
+
